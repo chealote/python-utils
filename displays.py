@@ -1,31 +1,32 @@
+import subprocess
 import re
-from utils import main
+from util import Util
 
-status_filename = f".{__file__.split('/')[-1]}"
-displays = [] # need to keep this to turn off all other displays
+class Displays(Util):
+    def __init__(self):
+        self._displays = None
 
-def list_of_displays():
-    with open("/var/log/Xorg.0.log") as f:
-        content = f.read()
+    def list_options(self):
+        displays = []
+        content = subprocess.check_output("xrandr")
+        for line in re.findall("[a-zA-Z0-9-]+ connected", content.decode("utf-8")):
+            m = re.match("([a-zA-Z0-9-]+) connected.*", line)
+            displays.append(m.group(1) )
 
-    for line in re.findall("Output [a-zA-Z0-9-]+ connected", content):
-        m = re.match(".*Output ([a-zA-Z0-9-]+).*", line)
-        displays.append(m.group(1) )
+        displays = [ d for d in displays if d != None ]
 
-    if len(displays) == 0 or None in displays:
-        raise Exception("Bad array of displays:", displays)
+        self._displays = displays
 
-    return displays
+        return displays
 
-def format_xrandr_cmd(new_current_display):
-    xrandr_cmd = "xrandr "
-    for d in displays:
-        if d == new_current_display:
-            xrandr_cmd += f"--output {d} --auto --primary "
-        else:
-            xrandr_cmd += f"--output {d} --off "
-    xrandr_cmd_split = xrandr_cmd.split(" ")
-    xrandr_cmd_split.remove("")
-    return xrandr_cmd_split
+    def format_command(self, new_current_display):
+        if self._displays == None:
+            return ""
 
-main(status_filename, list_of_displays, format_xrandr_cmd)
+        xrandr_cmd = "xrandr "
+        for d in self._displays:
+            if d == new_current_display:
+                xrandr_cmd += f"--output {d} --auto --primary "
+            else:
+                xrandr_cmd += f"--output {d} --off "
+        return xrandr_cmd

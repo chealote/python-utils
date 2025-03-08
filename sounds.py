@@ -1,14 +1,14 @@
 import subprocess
 import re
-from utils import main
+from util import Util
 
-status_filename = f".{__file__.split('/')[-1]}"
+class Sounds(Util):
+    def __init__(self):
+        pass
 
-def list_sinks():
-    output = subprocess.check_output("pacmd list-sinks".split(" "))
-    return re.findall("index: ([0-9]+)", output.decode("utf-8"))
+    def list_options(self):
+        output = subprocess.check_output("pacmd list-sinks".split(" "))
+        return re.findall("index: ([0-9]+)", output.decode("utf-8"))
 
-def format_cmd(next_state):
-    return f"pacmd set-default-sink {next_state}".split(" ")
-
-main(status_filename, list_sinks, format_cmd)
+    def format_command(self, next_state):
+        return f"pacmd set-default-sink {next_state}"

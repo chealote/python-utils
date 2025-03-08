@@ -1,11 +1,11 @@
-from utils import main
+from util import Util
 
-status_filename = f".{__file__.split('/')[-1]}"
+class Layouts(Util):
+    def __init__(self):
+        pass
 
-def list_layouts():
-    return ["us", "latam"] # eñe!
+    def list_options(self):
+        return ["us", "latam"]
 
-def format_cmd(next_layout):
-    return f"setxkbmap -option 'ctrl:nocaps' {next_layout}".split(" ")
-
-main(status_filename, list_layouts, format_cmd)
+    def format_command(self, next_state):
+        return f"setxkbmap -option 'ctrl:nocaps' {next_state}"
