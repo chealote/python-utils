@@ -3,6 +3,7 @@ from layouts import Layouts
 from sounds import Sounds
 from displays import Displays
 from wallpapers import Wallpapers
+from volume import Volume
 from states import pick_next_state
 from run_command import run_command
 
@@ -10,34 +11,84 @@ _usage = """
 TBD: write the usage
 """
 
+# next state is a step increment
+_utils_map_step = {
+    "volume": Volume,
+    "backlight": None,
+}
+
+# next state is given by an array of possible states
+_utils_map_state = {
+    "layouts": Layouts,
+    "sounds": Sounds,
+    "displays": Displays,
+    "wallpapers": Wallpapers,
+}
+
+_utils_run_as_system = [ "layouts" ]
+
+def _process_util_state(util_str):
+    if util_str not in _utils_map_state:
+        return
+
+    util = _utils_map_state[util_str]
+    if util is None:
+        print(f"Util not implemented...")
+        return
+
+    u = util()
+    options = u.list_options()
+    next_state = pick_next_state(options, util_str)
+
+    return u.format_command(next_state)
+
+def _process_util_step(util_str, step_direction):
+    if util_str not in _utils_map_step:
+        return
+
+    util = _utils_map_step[util_str]
+    if util is None:
+        print(f"Util not implemented...")
+        return
+
+    u = util(step_direction)
+    return u.format_command(step_direction)
+
 def main():
-    dry_run = False
-    if len(sys.argv) < 2:
+    cmd = None
+    dry_run = "-d" in sys.argv
+    args = [ a for a in sys.argv[1:] if a not in [ "-d" ] ]
+
+    if len(args) < 1:
         print(_usage)
         sys.exit(1)
 
-    if len(sys.argv) == 3 and sys.argv[2] == "-d":
-        dry_run = True
+    util_str = args.pop(0)
 
-    util_str = sys.argv[1]
-    util = None
-    if util_str == "layouts":
-        util = Layouts()
-    elif util_str == "sounds":
-        util = Sounds()
-    elif util_str == "displays":
-        util = Displays()
-    elif util_str == "wallpapers":
-        util = Wallpapers()
+    if util_str in _utils_map_state:
+        cmd = _process_util_state(util_str)
+    elif util_str in _utils_map_step:
+        # these need a direction to know where to step to
+        if len(args) == 0:
+            print("missing arguments")
+            sys.exit(1)
+        print("args:", args[0])
+        cmd = _process_util_step(util_str, args[0])
     else:
         print(f"unrecognized util name {util_str}")
         sys.exit(1)
 
-    options = util.list_options()
-    next_state = pick_next_state(options, util_str)
-    cmd = util.format_command(next_state)
+    if cmd == None:
+        print(f"no command returned?")
+        sys.exit(1)
+
+    print(f"Running the command: {cmd}")
+
     if not dry_run:
-        run_command(cmd)
+        if util_str in _utils_run_as_system:
+            run_command(cmd, True)
+        else:
+            run_command(cmd)
     else:
         print(f"In dry run mode, here's the next state")
         print(f"  {cmd}")
